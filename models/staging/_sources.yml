@@ -1,0 +1,63 @@
+version: 2
+
+sources:
+  - name: inside_airbnb
+    description: >
+      Rohdaten aus Inside Airbnb (Berlin und München), geladen per
+      scripts/load_raw.py in das lokale DuckDB-Warehouse. Die Tabellen sind
+      bewusst unverändert und werden erst in der Staging-Schicht typisiert
+      und benannt.
+    schema: raw
+    tables:
+      - name: listings_all
+        description: >
+          Alle Listings aller geladenen Snapshots. Ein Datensatz je Listing
+          und Snapshot-Datum. Enthält Spalten, die in älteren Snapshots noch
+          nicht existierten (host_profile_id, number_of_reviews_ltm, license);
+          diese sind dort NULL.
+        columns:
+          - name: listing_id
+            description: Inside-Airbnb-ID des Inserats.
+            tests:
+              - not_null
+          - name: city
+            description: Stadt (Berlin oder Muenchen).
+            tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ["Berlin", "Muenchen"]
+          - name: snapshot_date
+            description: Erhebungsdatum des Snapshots.
+            tests:
+              - not_null
+          - name: price_eur
+            description: >
+              Nachtpreis in Euro, wie in der Quelle angegeben. Rund ein Drittel
+              der Zeilen ist leer (NULL).
+          - name: source_file
+            description: Herkunftsdatei des Snapshots (Nachvollziehbarkeit).
+      - name: neighbourhoods
+        description: >
+          Zuordnung von Bezirk (district) zu Stadtteil (subdistrict) je Stadt,
+          aus den neighbourhoods.csv-Dateien von Inside Airbnb.
+        columns:
+          - name: city
+            tests:
+              - not_null
+          - name: district
+            description: >
+              Grobe Verwaltungsebene. In München durchgehend NULL, dort liefert
+              subdistrict die Stadtbezirke. Deshalb hier bewusst kein not_null.
+          - name: subdistrict
+            tests:
+              - not_null
+      - name: load_log
+        description: >
+          Audit-Tabelle des Ladevorgangs: je Quelldatei die Zeilenzahl und der
+          Ladezeitpunkt. Grundlage für Source Freshness.
+        config:
+          loaded_at_field: loaded_at
+          freshness:
+            warn_after: {count: 7, period: day}
+            error_after: {count: 30, period: day}

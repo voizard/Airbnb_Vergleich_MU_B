@@ -1,0 +1,50 @@
+name: 'airbnb_analytics'
+version: '1.0.0'
+config-version: 2
+
+# Profil siehe profiles.yml im Repo-Wurzelverzeichnis (DuckDB, keine Zugangsdaten).
+profile: 'airbnb_analytics'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+  - "logs"
+
+# Zentrale Fachparameter, in Modellen ueber var() referenziert.
+vars:
+  # Preise oberhalb dieser Grenze gelten als Datenfehler bzw. Ausreisser
+  # und werden in den Marts ausgeschlossen (Treffer werden protokolliert).
+  max_plausibler_preis_eur: 1000
+  # Ab dieser Abweichung der Zeilenzahl zum Vorgaenger-Snapshot schlaegt der
+  # Drift-Test an (warn). Hintergrund: Berlin 2026-03 hat deutlich weniger Zeilen.
+  snapshot_drift_schwelle: 0.30
+
+models:
+  airbnb_analytics:
+    staging:
+      +materialized: view
+      +schema: staging
+    marts:
+      +materialized: table
+      +schema: marts
+
+seeds:
+  airbnb_analytics:
+    +schema: seeds
+    room_type_mapping:
+      +column_types:
+        room_type: varchar
+        room_type_de: varchar
+        room_category: varchar
+
+snapshots:
+  airbnb_analytics:
+    +target_schema: snapshots

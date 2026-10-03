@@ -1,0 +1,66 @@
+version: 2
+
+models:
+  - name: stg_airbnb__listings
+    description: >
+      Listings aus allen Snapshots (Berlin, München, historischer Berlin-Snapshot
+      2015-09), typisiert, umbenannt und um Zimmertyp-Labels aus dem Seed
+      room_type_mapping ergänzt. Korn: eine Zeile je Listing und Snapshot.
+    columns:
+      - name: listing_id
+        description: Inside-Airbnb-ID des Inserats.
+        tests:
+          - not_null
+      - name: city
+        description: Stadt (Berlin oder Muenchen).
+        tests:
+          - not_null
+      - name: snapshot_date
+        description: Erhebungsdatum des Snapshots.
+        tests:
+          - not_null
+      - name: district
+        description: "Grobe Verwaltungsebene (Berlin: Bezirk, München: leer)."
+      - name: subdistrict
+        description: "Feine Ebene (Berlin: Ortsteil, München: Stadtbezirk)."
+      - name: room_type
+        description: Zimmertyp laut Quelle.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["Entire home/apt", "Private room", "Shared room", "Hotel room"]
+      - name: room_type_de
+        description: Deutsche Bezeichnung des Zimmertyps (aus Seed).
+      - name: room_category
+        description: Gruppierung "Ganze Unterkunft" oder "Zimmer".
+      - name: price_eur
+        description: Nachtpreis in Euro, NULL wenn in der Quelle leer.
+      - name: has_price
+        description: TRUE, wenn ein Preis vorhanden ist.
+      - name: is_entire_home
+        description: TRUE bei "Entire home/apt".
+      - name: is_commercial_host
+        description: TRUE, wenn der Host mehr als ein Inserat hat.
+      - name: availability_365
+        description: Verfügbare Tage in den nächsten 365 Tagen.
+
+  - name: stg_airbnb__neighbourhoods
+    description: >
+      Bezirks- und Stadtteilzuordnung je Stadt aus den neighbourhoods.csv-Dateien.
+      Korn: eine Zeile je Stadtteil.
+    columns:
+      - name: city
+        tests:
+          - not_null
+      - name: district
+        description: >
+          Grobe Verwaltungsebene. In München durchgehend NULL, dort liefert
+          subdistrict die Stadtbezirke.
+      - name: subdistrict
+        description: "Feine Ebene (Berlin: Ortsteil, München: Stadtbezirk)."
+        tests:
+          - not_null
+      - name: analysis_district
+        description: Einheitliche Analyseebene über beide Städte.
+        tests:
+          - not_null

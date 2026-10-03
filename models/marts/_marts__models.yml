@@ -1,0 +1,109 @@
+version: 2
+
+models:
+  - name: dim_neighbourhood
+    description: >
+      Bezirksdimension je Stadt. Analysebezirk ist Berlin: Bezirk aus
+      neighbourhood_group, München: Stadtbezirk aus neighbourhood.
+      Die Koordinaten sind Näherungswerte (Mittel der Listings im Bezirk).
+    columns:
+      - name: district_key
+        description: Surrogatschlüssel aus Stadt und Bezirk.
+        tests:
+          - not_null
+          - unique
+      - name: city
+        tests:
+          - not_null
+      - name: district
+        tests:
+          - not_null
+      - name: subdistrict_count
+        description: Anzahl der Stadtteile, die dem Bezirk zugeordnet sind.
+
+  - name: fct_listing_snapshot
+    description: >
+      Faktentabelle auf Listing-Ebene, inkrementell geladen.
+      Korn: eine Zeile je Stadt, Snapshot-Datum und Listing.
+    columns:
+      - name: listing_snapshot_key
+        description: Surrogatschlüssel aus Stadt, Snapshot-Datum und Listing-ID.
+        tests:
+          - not_null
+          - unique
+      - name: district_key
+        description: Fremdschlüssel auf dim_neighbourhood.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_neighbourhood')
+                field: district_key
+      - name: listing_id
+        tests:
+          - not_null
+      - name: snapshot_date
+        tests:
+          - not_null
+      - name: price_eur
+        description: Nachtpreis in Euro, NULL wenn in der Quelle leer.
+      - name: is_price_outlier
+        description: TRUE, wenn der Preis über der plausiblen Obergrenze liegt.
+
+  - name: mart_district_kpis
+    description: >
+      Kennzahlen je Bezirk und Snapshot: Angebotsmenge, Anteil ganzer
+      Unterkünfte, Preismedian und -mittel, Auslastung, Hoststruktur.
+      Korn: eine Zeile je Stadt, Bezirk und Snapshot.
+    columns:
+      - name: district_key
+        tests:
+          - not_null
+      - name: snapshot_date
+        tests:
+          - not_null
+      - name: listing_count
+        description: Anzahl Listings im Bezirk und Snapshot.
+        tests:
+          - not_null
+      - name: median_price_eur
+        description: >
+          Median des Nachtpreises, Ausreisser ausgeschlossen. NULL, wenn im
+          Bezirk kein auswertbarer Preis vorliegt.
+      - name: price_coverage_share
+        description: Anteil der Listings mit vorhandenem Preis.
+
+  - name: mart_price_trend
+    description: >
+      Preisentwicklung je Bezirk über die Snapshots inklusive Veränderung zum
+      vorherigen Snapshot (absolut und relativ).
+    columns:
+      - name: city
+        tests:
+          - not_null
+      - name: district
+        tests:
+          - not_null
+      - name: median_price_eur
+        tests:
+          - not_null
+
+  - name: mart_powerbi_listings
+    description: >
+      Denormalisierte, flache Export-Tabelle für Power BI. Eine Zeile je Listing
+      und Snapshot mit Bezirksattributen, deutschen Zimmertyp-Bezeichnungen und
+      Datumsteilen für die Zeitachse.
+    columns:
+      - name: listing_snapshot_key
+        tests:
+          - not_null
+          - unique
+      - name: snapshot_year
+        tests:
+          - not_null
+      - name: room_category
+        description: Gruppierung "Ganze Unterkunft" oder "Zimmer".
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["Ganze Unterkunft", "Zimmer"]

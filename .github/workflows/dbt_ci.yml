@@ -1,0 +1,57 @@
+name: dbt build
+
+# CI-Ablauf: zwei aktuelle Inside-Airbnb-Snapshots laden, Warehouse aufbauen,
+# dbt build (Modelle, Tests, Snapshot, Seeds) ausführen.
+#
+# Hinweis: Die historische Berlin-Datei (2015-09) ist nicht Teil der CI; der
+# Loader überspringt fehlende Snapshots, der Drift-Test läuft dann ohne
+# Vorgängerwert durch.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      AIRBNB_RAW_DIR: ${{ github.workspace }}/_data/raw
+      DBT_PROFILES_DIR: ${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Abhängigkeiten installieren
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Rohdaten laden
+        run: |
+          mkdir -p "$AIRBNB_RAW_DIR/vis" "$AIRBNB_RAW_DIR/berlin" "$AIRBNB_RAW_DIR/munich"
+          BASE="https://data.insideairbnb.com/germany"
+          curl -fsSL -o "$AIRBNB_RAW_DIR/vis/berlin-2026-06-26-listings.csv" \
+            "$BASE/be/berlin/2026-06-26/visualisations/listings.csv"
+          curl -fsSL -o "$AIRBNB_RAW_DIR/vis/munich-2026-06-29-listings.csv" \
+            "$BASE/bv/munich/2026-06-29/visualisations/listings.csv"
+          curl -fsSL -o "$AIRBNB_RAW_DIR/berlin/neighbourhoods.csv" \
+            "$BASE/be/berlin/2026-06-26/visualisations/neighbourhoods.csv"
+          curl -fsSL -o "$AIRBNB_RAW_DIR/munich/neighbourhoods.csv" \
+            "$BASE/bv/munich/2026-06-29/visualisations/neighbourhoods.csv"
+
+      - name: Warehouse aufbauen
+        run: python scripts/load_raw.py
+
+      - name: dbt debug
+        run: dbt debug
+
+      - name: dbt build
+        run: dbt build
+
+      - name: dbt docs generate
+        run: dbt docs generate

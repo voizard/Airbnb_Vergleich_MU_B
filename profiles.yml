@@ -1,0 +1,14 @@
+# dbt-Profil fuer das lokale DuckDB-Warehouse.
+# Enthaelt bewusst keine Zugangsdaten: DuckDB ist eine Datei, keine Cloud-DB.
+#
+# Nutzung (aus dem Repo-Wurzelverzeichnis):
+#   export DBT_PROFILES_DIR=.
+#   dbt debug
+airbnb_analytics:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "data/airbnb.duckdb"
+      schema: airbnb
+      threads: 4
