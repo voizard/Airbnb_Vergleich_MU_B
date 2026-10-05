@@ -21,8 +21,8 @@ Inside Airbnb CSVs          EL (Python/DuckDB)         T (dbt)
 │ vis/berlin-*.csv │──────▶│  raw.listings_all│─────▶│ staging (Views)     │
 │ vis/munich-*.csv │       │  raw.neighbourhoods     │  stg_airbnb__*      │
 │ hist/berlin-*.csv│       │  raw.load_log    │      └─────────┬───────────┘
-└──────────────────┘       └──────────────────┘                │
-                                                               ▼
+│ hist/munich-*.csv│       └──────────────────┘                │
+└──────────────────┘                                           ▼
                                             ┌──────────────────────────────────┐
                                             │ marts (Tables)                   │
                                             │ dim_neighbourhood                │
@@ -43,7 +43,7 @@ Inside Airbnb CSVs          EL (Python/DuckDB)         T (dbt)
 | Stadt | Snapshots | Listings gesamt |
 |---|---|---|
 | Berlin | 2015-09-01 (historisch), 2025-12-27, 2026-03-28, 2026-06-26 | 48.554 |
-| München | 2025-12-29, 2026-03-30, 2026-06-29 | 15.216 |
+| München | 2020-05-24 (historisch), 2025-12-29, 2026-03-30, 2026-06-29 | 26.344 |
 
 Rohdaten liegen **nicht** im Repo (Größe, Lizenz). Sie werden per
 `scripts/download_data.sh` bzw. manuell bezogen und über
@@ -51,19 +51,18 @@ Rohdaten liegen **nicht** im Repo (Größe, Lizenz). Sie werden per
 
 ### Historische Snapshots
 
-Zwei ältere Mirrors liegen zusätzlich vor:
+Zwei ältere Mirrors mit abweichendem Schema sind Teil des Builds:
 
-| Stadt | Stand | Listings | Preis-Abdeckung | Im dbt-Build |
-|---|---|---|---|---|
-| Berlin | 2015-09-01 | 15.373 | 100 % | ja |
-| München | 2020-05-24 | 11.128 | 100 % | nein |
+| Stadt | Stand | Listings | Preis-Abdeckung |
+|---|---|---|---|
+| Berlin | 2015-09-01 | 15.373 | 100 % |
+| München | 2020-05-24 | 11.128 | 100 % |
 
-Der **München-Snapshot 2020-05-24** hat ein abweichendes Schema (u. a. liegen
-die Bezirke nur in `neighbourhood_cleansed`) und ist deshalb bewusst **nicht**
-Teil des dbt-Builds. Er wird separat im Bezirks-Preisvergleich 2020 vs. 2026
-ausgewertet: Nachtpreis ganze Wohnungen **95 € (2020) → 181,72 € (2026-06)**,
-nominal **+91 %**, inflationsbereinigt **+57 %**. Vorbehalt: Mai 2020 fiel in
-den Corona-Lockdown, der Wert ist als Obergrenze zu lesen.
+Der München-Snapshot 2020-05-24 liegt nur in einem älteren Schema vor: Die
+Bezirke stehen in `neighbourhood_cleansed` (25 Stadtbezirke), ein
+`neighbourhood_group` gibt es nicht. `scripts/load_raw.py` bildet das über einen
+Per-Snapshot-Spalten-Override (`subdistrict` → `neighbourhood_cleansed`) auf das
+einheitliche Schema ab; Berlin 2015 nutzt `neighbourhood` unverändert.
 
 ## Datenmodell
 
@@ -75,7 +74,7 @@ den Corona-Lockdown, der Wert ist als Obergrenze zu lesen.
 | `fct_listing_snapshot` | **incremental** (delete+insert) | eine Zeile je Stadt, Snapshot und Listing |
 | `mart_district_kpis` | table | eine Zeile je Stadt, Bezirk und Snapshot |
 | `mart_price_trend` | table | Kennzahlen plus Veränderung zum Vorgänger-Snapshot |
-| `mart_powerbi_listings` | table | flache Export-Tabelle (63.770 Zeilen) |
+| `mart_powerbi_listings` | table | flache Export-Tabelle (74.898 Zeilen) |
 | `snapshots.listings_history` | dbt snapshot (SCD2) | eine Zeile je Listing-Version |
 
 Analyseebene: Berlin hat 12 Bezirke in `neighbourhood_group` (die feinere
@@ -97,11 +96,11 @@ zu `analysis_district` (siehe `stg_airbnb__listings`).
 
 - Berlin 2026-06: 12.855 Listings, 66,2 % mit auswertbarem Preis
 - München 2026-06: 6.890 Listings, 64,8 % mit auswertbarem Preis
-- Preisausreißer über 1.000 €/Nacht: Berlin 27, München 136 — werden aus den
+- Preisausreißer über 1.000 €/Nacht: Berlin 27, München 156 — werden aus den
   Medians ausgeschlossen, aber gezählt
 - Berlin 2015-09: Median der Bezirksmediane 50 € (historischer Vergleichswert)
-- München 2020-05 (historischer Snapshot, nicht im dbt-Build): ganze Wohnungen
-  95 € → 2026-06: 181,72 € (+91 % nominal, +57 % real) — Corona-Lockdown,
+- München 2020-05: Median der Bezirksmediane 75 €; ganze Wohnungen 95 € →
+  2026-06: 178 € (+87 % nominal) — Mai 2020 fiel in den Corona-Lockdown,
   daher als Obergrenze zu lesen
 
 ## Tests und Datenqualität
@@ -110,7 +109,8 @@ zu `analysis_district` (siehe `stg_airbnb__listings`).
 3 singular Tests). Die Warnung ist gewollt und dokumentiert:
 
 - `assert_snapshot_drift` (warn) erkennt Zeilenzahl-Sprünge zwischen Snapshots:
-  Berlin 2026-03 **−59,5 %**, Berlin 2026-06 **+119,5 %**, München 2026-06 **+93,1 %**
+  Berlin 2026-03 **−59,5 %**, Berlin 2026-06 **+119,5 %**, München 2025-12
+  **−57,2 %** (nach dem 2020er-Snapshot), München 2026-06 **+93,1 %**
 - `assert_preis_plausibel` prüft negative Preise und Mediane ohne Datenbasis
 - `assert_eindeutiges_listing_je_snapshot` ersetzt einen dbt_utils-Test
   (das Projekt läuft bewusst ohne externe Pakete)
@@ -159,11 +159,10 @@ steht noch aus (kein GitHub-Zugang aus dieser Umgebung).
 
 ## Grenzen und nächste Schritte
 
-- Preise fehlen in den dbt-Snapshots 2025-12 (beide Städte) und 2026-03
-  (Berlin); die Zeitreihe im Build ist deshalb nur für 2015 → 2026-06 (Berlin)
-  bzw. 2026-03 → 2026-06 (München) belastbar. Für München liefert der
-  historische Snapshot 2020-05-24 (100 % Preise, nicht im Build) den weiteren
-  Vergleich 2020 → 2026 — mit Corona-Vorbehalt.
+- Preise fehlen in den Snapshots 2025-12 (beide Städte) und 2026-03 (Berlin);
+  belastbare Preisvergleiche gibt es daher für 2015 → 2026-06 (Berlin) und
+  2020-05 → 2026-06 (München). Der München-Wert 2020 fällt in den
+  Corona-Lockdown und ist als Obergrenze zu lesen.
 - Nur `visualisations`-Daten; `calendar`/`reviews` (Auslastung, Umsatzschätzung)
   fehlen.
 - Ausbaufähig: `dbt_utils`-Pakete, CI-Badge, Geo-Export (GeoJSON) für Karten.

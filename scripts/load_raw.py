@@ -82,27 +82,39 @@ NULL_TYPES: dict[str, str] = {
     "license": "VARCHAR",
 }
 
-# Historie: die kuratierte Berliner Datei ist der Snapshot 2015-09
-# (Quelle: Inside Airbnb, historische Berlin-Daten; vgl. airbnb/out/berlin-bezirke-2015-vs-2026.csv).
-HIST_SNAPSHOTS = [("Berlin", date(2015, 9, 1), "hist/berlin-github-listings.csv")]
+# Historische Snapshots (aeltere Mirrors mit abweichendem Schema).
+# Quelle: Inside Airbnb, historische Stadt-Daten.
+#   Berlin  2015-09: hist/berlin-github-listings.csv
+#   Muenchen 2020-05: hist/unzipped/listings.csv (Bezirke nur in
+#                     neighbourhood_cleansed, kein neighbourhood_group)
+# overrides: Ziel-Spalte -> abweichende Quellspalte in genau dieser Datei.
+HIST_SNAPSHOTS = [
+    ("Berlin", date(2015, 9, 1), "hist/berlin-github-listings.csv", {}),
+    (
+        "Muenchen",
+        date(2020, 5, 24),
+        "hist/unzipped/listings.csv",
+        {"subdistrict": "neighbourhood_cleansed"},
+    ),
+]
 
 CITY_DIRS = {"berlin": "Berlin", "munich": "Muenchen"}
 
 
-def discover_snapshots(raw_dir: Path) -> list[tuple[str, date, Path]]:
+def discover_snapshots(raw_dir: Path) -> list[tuple[str, date, Path, dict]]:
     """Findet alle Snapshot-Dateien: raw/vis/<stadt>-<datum>-listings.csv."""
-    found: list[tuple[str, date, Path]] = []
+    found: list[tuple[str, date, Path, dict]] = []
     vis = raw_dir / "vis"
     if vis.is_dir():
         pattern = re.compile(r"^(berlin|munich)-(\d{4}-\d{2}-\d{2})-listings\.csv$")
         for path in sorted(vis.glob("*.csv")):
             m = pattern.match(path.name)
             if m:
-                found.append((CITY_DIRS[m.group(1)], date.fromisoformat(m.group(2)), path))
-    for city, snap, rel in HIST_SNAPSHOTS:
+                found.append((CITY_DIRS[m.group(1)], date.fromisoformat(m.group(2)), path, {}))
+    for city, snap, rel, overrides in HIST_SNAPSHOTS:
         path = raw_dir / rel
         if path.is_file():
-            found.append((city, snap, path))
+            found.append((city, snap, path, overrides))
     return found
 
 
@@ -115,12 +127,17 @@ def columns_of(con: duckdb.DuckDBPyConnection, path: Path) -> list[str]:
 
 def build_union(con: duckdb.DuckDBPyConnection, snapshots) -> str:
     selects = []
-    for city, snap, path in snapshots:
+    for city, snap, path, overrides in snapshots:
         present = {c.lower() for c in columns_of(con, path)}
         exprs = []
         for target, expr in COLUMN_EXPRESSIONS.items():
             source_col = re.search(r'"([^"]+)"', expr)
             name = source_col.group(1) if source_col else None
+            override = overrides.get(target)
+            if override:
+                # Abweichende Quellspalte in diesem Snapshot (z. B. historisches Schema).
+                expr = expr.replace(f'"{name}"', f'"{override}"')
+                name = override
             if name and name.lower() not in present:
                 exprs.append(f"CAST(NULL AS {NULL_TYPES[target]}) AS {target}")
             else:
