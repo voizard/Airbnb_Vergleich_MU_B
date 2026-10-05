@@ -49,6 +49,22 @@ Rohdaten liegen **nicht** im Repo (Größe, Lizenz). Sie werden per
 `scripts/download_data.sh` bzw. manuell bezogen und über
 `scripts/load_raw.py` in das DuckDB-Warehouse geladen.
 
+### Historische Snapshots
+
+Zwei ältere Mirrors liegen zusätzlich vor:
+
+| Stadt | Stand | Listings | Preis-Abdeckung | Im dbt-Build |
+|---|---|---|---|---|
+| Berlin | 2015-09-01 | 15.373 | 100 % | ja |
+| München | 2020-05-24 | 11.128 | 100 % | nein |
+
+Der **München-Snapshot 2020-05-24** hat ein abweichendes Schema (u. a. liegen
+die Bezirke nur in `neighbourhood_cleansed`) und ist deshalb bewusst **nicht**
+Teil des dbt-Builds. Er wird separat im Bezirks-Preisvergleich 2020 vs. 2026
+ausgewertet: Nachtpreis ganze Wohnungen **95 € (2020) → 181,72 € (2026-06)**,
+nominal **+91 %**, inflationsbereinigt **+57 %**. Vorbehalt: Mai 2020 fiel in
+den Corona-Lockdown, der Wert ist als Obergrenze zu lesen.
+
 ## Datenmodell
 
 | Modell | Materialisierung | Korn |
@@ -84,6 +100,9 @@ zu `analysis_district` (siehe `stg_airbnb__listings`).
 - Preisausreißer über 1.000 €/Nacht: Berlin 27, München 136 — werden aus den
   Medians ausgeschlossen, aber gezählt
 - Berlin 2015-09: Median der Bezirksmediane 50 € (historischer Vergleichswert)
+- München 2020-05 (historischer Snapshot, nicht im dbt-Build): ganze Wohnungen
+  95 € → 2026-06: 181,72 € (+91 % nominal, +57 % real) — Corona-Lockdown,
+  daher als Obergrenze zu lesen
 
 ## Tests und Datenqualität
 
@@ -140,9 +159,11 @@ steht noch aus (kein GitHub-Zugang aus dieser Umgebung).
 
 ## Grenzen und nächste Schritte
 
-- Zwei Snapshots (2025-12, 2026-03) enthalten **keine** Preise; die
-  Preisentwicklung ist deshalb nur für 2015 → 2026-06 (Berlin) bzw.
-  2026-03 → 2026-06 (München) belastbar.
+- Preise fehlen in den dbt-Snapshots 2025-12 (beide Städte) und 2026-03
+  (Berlin); die Zeitreihe im Build ist deshalb nur für 2015 → 2026-06 (Berlin)
+  bzw. 2026-03 → 2026-06 (München) belastbar. Für München liefert der
+  historische Snapshot 2020-05-24 (100 % Preise, nicht im Build) den weiteren
+  Vergleich 2020 → 2026 — mit Corona-Vorbehalt.
 - Nur `visualisations`-Daten; `calendar`/`reviews` (Auslastung, Umsatzschätzung)
   fehlen.
 - Ausbaufähig: `dbt_utils`-Pakete, CI-Badge, Geo-Export (GeoJSON) für Karten.
