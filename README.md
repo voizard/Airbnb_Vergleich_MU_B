@@ -26,10 +26,12 @@ Inside Airbnb CSVs          EL (Python/DuckDB)         T (dbt)
                                             ┌──────────────────────────────────┐
                                             │ marts (Tables)                   │
                                             │ dim_neighbourhood                │
+                                            │ dim_district_snapshot            │
                                             │ fct_listing_snapshot (inkrem.)   │
                                             │ mart_district_kpis               │
                                             │ mart_price_trend                 │
                                             │ mart_powerbi_listings            │
+                                            │ mart_powerbi_report_schlank      │
                                             └──────────────┬───────────────────┘
                                                            ▼
                                                     Power BI / Ad-hoc-SQL
@@ -71,10 +73,12 @@ einheitliche Schema ab; Berlin 2015 nutzt `neighbourhood` unverändert.
 | `stg_airbnb__listings` | view | eine Zeile je Listing und Snapshot |
 | `stg_airbnb__neighbourhoods` | view | eine Zeile je Stadtteil |
 | `dim_neighbourhood` | table | eine Zeile je Stadt und Bezirk |
+| `dim_district_snapshot` | table | Kennzahlen je Bezirk und Snapshot (148 Zeilen), nicht additiv |
 | `fct_listing_snapshot` | **incremental** (delete+insert) | eine Zeile je Stadt, Snapshot und Listing |
 | `mart_district_kpis` | table | eine Zeile je Stadt, Bezirk und Snapshot |
 | `mart_price_trend` | table | Kennzahlen plus Veränderung zum Vorgänger-Snapshot |
 | `mart_powerbi_listings` | table | flache Export-Tabelle (74.898 Zeilen) |
+| `mart_powerbi_report_schlank` | table | schlanke Faktentabelle für Power BI (74.898 Zeilen, 32 Spalten) |
 | `snapshots.listings_history` | dbt snapshot (SCD2) | eine Zeile je Listing-Version |
 
 Analyseebene: Berlin hat 12 Bezirke in `neighbourhood_group` (die feinere
@@ -99,6 +103,7 @@ zu `analysis_district` (siehe `stg_airbnb__listings`).
 - Preisausreißer über 1.000 €/Nacht: Berlin 27, München 156 — werden aus den
   Medians ausgeschlossen, aber gezählt
 - Berlin 2015-09: Median der Bezirksmediane 50 € (historischer Vergleichswert)
+- Berlin 2015-09 → 2026-06, ganze Unterkünfte: 65 € → 155 € (+138 % nominal)
 - München 2020-05: Median der Bezirksmediane 75 €; ganze Wohnungen 95 € →
   2026-06: 178 € (+87 % nominal) — Mai 2020 fiel in den Corona-Lockdown,
   daher als Obergrenze zu lesen
@@ -130,6 +135,7 @@ python3 scripts/load_raw.py        # EL: CSVs -> data/airbnb.duckdb (Schema raw)
 dbt debug                          # Verbindung prüfen
 dbt build                          # Seeds, Snapshots, Modelle, Tests
 dbt docs generate && dbt docs serve # Dokumentation und Lineage
+python3 scripts/export_powerbi_de.py # Power-BI-CSVs in deutscher Schreibweise
 ```
 
 Wichtige Einzelbefehle:
@@ -146,9 +152,37 @@ Umgebungsvariablen: `AIRBNB_RAW_DIR` (Standard: `../airbnb/raw`),
 
 ## Power BI
 
-`mart_powerbi_listings` ist die Konsumenten-Tabelle: flach, deutsch beschriftete
-Zimmertypen, Datumsteile für die Zeitachse, Bezirksattribute für Drill-downs.
-Verbindung über den DuckDB-ODBC-Treiber; alternativ als CSV exportierbar.
+Zwei Tabellen bilden die Konsumentenschicht:
+
+- `mart_powerbi_report_schlank` — Faktentabelle, eine Zeile je Inserat und
+  Snapshot (74.898 Zeilen, 32 Spalten): Preise, Zimmertyp, Koordinaten,
+  Bezirksattribute und `district_snapshot_id` als Fremdschlüssel.
+- `dim_district_snapshot` — Bezirkskennzahlen je Snapshot (148 Zeilen):
+  Median- und Durchschnittspreis, Preis-Abdeckung, Ausreißerzahl sowie die
+  Veränderung zum vorherigen Snapshot mit Preisen. Nicht additiv (Median,
+  Anteile) und unabhängig von Filtern der Faktentabelle — nur lesen, nie summieren.
+
+`mart_powerbi_listings` bleibt als flache Variante ohne Bezirks-Fremdschlüssel
+erhalten. Verbindung über den DuckDB-ODBC-Treiber; alternativ als CSV.
+
+### CSV-Export in deutscher Schreibweise
+
+DuckDB schreibt Dezimalzahlen mit Punkt (`26.0`). Power BI liest mit deutscher
+Locale und deutet den Punkt als Tausendertrennzeichen — aus `26.0` wird `260`
+(Faktor 10). `scripts/export_powerbi_de.py` schreibt daher alle reinen
+Zahlenfelder mit Dezimalkomma, Semikolon als Trennzeichen, UTF-8 mit BOM:
+
+```bash
+python3 scripts/export_powerbi_de.py        # dim_district_snapshot + mart_powerbi_report_schlank
+python3 scripts/export_powerbi_de.py --alle # alle Marts
+```
+
+Textfelder (`Charlottenburg-Wilm.`) und Ganzzahlen bleiben unangetastet. Beim
+Import in Power BI: Zahlen mit Gebietsschema **Deutsch**, die Wahr/Falsch-Spalten
+(`has_price`, `is_price_outlier`, …) mit **Englisch (USA)** — im CSV stehen
+`true`/`false`.
+
+![Startseite des Power-BI-Berichts: Preisentwicklung Berlin und München](docs/powerbi_startseite.png)
 
 ## Continuous Integration
 
