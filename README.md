@@ -182,7 +182,7 @@ Import in Power BI: Zahlen mit Gebietsschema **Deutsch**, die Wahr/Falsch-Spalte
 (`has_price`, `is_price_outlier`, …) mit **Englisch (USA)** — im CSV stehen
 `true`/`false`.
 
-![Startseite des Power-BI-Berichts: Preisentwicklung Berlin und München](docs/powerbi_startseite.png)
+![Startseite des Power-BI-Berichts: Preisentwicklung Berlin und München](docs/powerbi_startseite.png?v=2)
 
 ## Continuous Integration
 
