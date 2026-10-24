@@ -126,17 +126,105 @@ models:
           - relationships:
               arguments:
                 to: ref('dim_neighbourhood')
-      - name: snapshot_date
-        tests:
-          - not_null
-      - name: district_median_price_eur
+                field: district_key
         description: >
           Median-Nachtpreis ohne Ausreißer über alle Zimmertypen. Leer (nicht 0)
           bei Ständen ohne Preise: Berlin 2025-12/2026-03, München 2025-12.
+      - name: district_avg_availability_365
+        description: >
+          Mittelwert der verfügbaren Tage je Jahr über alle Inserate des Bezirks.
+          Allein irreführend: die Verteilung ist dreigipflig (viele 0-Tage-
+          Inserate, viele ab 300 Tagen). München 2026-06 liegt mit 124,5 im
+          Mittel deutlich über dem Median von 79. Für Kacheln den Median nehmen.
+      - name: district_median_availability_365
+        description: >
+          Median der verfügbaren Tage je Jahr. Robuster als das Mittel, weil
+          gesperrte Inserate (0 Tage) den Mittelwert nach unten ziehen.
+      - name: district_share_availability_zero
+        description: >
+          Anteil der Inserate mit 0 verfügbaren Tagen (0–1), also abgeschaltete
+          oder blockierte Kalender. Berlin 2026-06: 23,4 %, München: 30,2 %.
+          Diese Inserate tragen praktisch keinen Preis (Berlin 3.488 von 3.490
+          ohne Preisangabe) — der Wert erklärt die Preis- und Auslastungslücken.
+      - name: district_share_availability_300plus
+        description: >
+          Anteil der Inserate mit mindestens 300 freien Tagen (0–1). Gegenstück
+          zum Nullanteil: erst beide zusammen beschreiben die dreigipflige
+          Verteilung. Als Achse im Streudiagramm geeignet, ein Median nicht.
+      - name: district_avg_availability_active
+        description: >
+          Mittlere verfügbare Tage je Jahr, nur über aktive Inserate
+          (availability_365 > 0). Anders als der Median als Streudiagramm-Achse
+          verwendbar, weil es je Bezirk ein einfacher Mittelwert ist.
+      - name: snapshot_label
+        description: >
+          Anzeigename des Stands, deutsch ("Juni 2026"). Berlin (26.06.2026) und
+          München (29.06.2026) teilen sich denselben Wert; nur so kann ein Slicer
+          beide Städte gleichzeitig zeigen. Ein Datums-Slicer auf snapshot_date
+          schließt immer eine der beiden Städte aus.
+
+  - name: dim_district_verfuegbarkeit
+    description: >
+      Verfügbarkeits-Dimension je Bezirk und Snapshot (148 Zeilen), gleicher
+      Primärschlüssel district_snapshot_id wie dim_district_snapshot. Eigene
+      Datei, damit neue Kennzahlen die bestehenden Power-BI-Importe nicht
+      verschieben (Csv.Document ... Columns=n schneidet Zusatzspalten ab).
+      Alle Werte sind Bezirkskennzahlen — nicht additiv, im Visual Mittelwert
+      oder Max verwenden. Stadtweite Zahlen kommen aus den Measures auf der
+      Faktentabelle.
+    columns:
+      - name: district_snapshot_id
+        description: Primärschlüssel; identisch zu dim_district_snapshot.
+        tests:
+          - not_null
+          - unique
+          - relationships:
+              arguments:
+                to: ref('dim_district_snapshot')
+                field: district_snapshot_id
+      - name: verf_basis_inserate
+        description: Inserate im Bezirk — der Nenner aller Anteile.
+      - name: verf_aktive_inserate
+        description: Inserate mit mindestens einem freien Tag.
+      - name: verf_mittel_alle
+        description: Mittel der verfügbaren Tage über alle Inserate.
+      - name: verf_median_alle
+        description: >
+          Median der verfügbaren Tage. Robuster als das Mittel, weil gesperrte
+          Kalender (0 Tage) den Mittelwert nach unten ziehen.
+      - name: verf_mittel_aktiv
+        description: >
+          Mittel nur über aktive Inserate. Anders als der Median als Achse im
+          Streudiagramm verwendbar.
+      - name: verf_anteil_gesperrt
+        description: >
+          Anteil der Inserate mit 0 freien Tagen (0–1). Berlin Juni 2026: 27,2 %,
+          München: 31,7 %.
+      - name: verf_anteil_1_89
+        description: Anteil mit 1–89 freien Tagen (0–1).
+      - name: verf_anteil_90_299
+        description: Anteil mit 90–299 freien Tagen (0–1).
+      - name: verf_anteil_300plus
+        description: >
+          Anteil ab 300 freien Tagen (0–1). Die vier Anteile zusammen ergeben 1
+          — Grundlage für ein gestapeltes Balkendiagramm „Verteilung statt Mittel".
+      - name: inserate_mit_preis
+        description: Inserate mit Preisangabe — Nenner der Preiskennzahlen.
+      - name: preis_abdeckung_share
+        description: Anteil der Inserate mit Preisangabe (0–1).
+      - name: median_preis_eur
+        description: >
+          Median-Nachtpreis ohne Ausreißer — dieselbe Definition wie
+          district_median_price_eur in dim_district_snapshot. Liegt hier mit drin,
+          damit der Scatter Verfügbarkeit × Preis aus dieser einen Tabelle kommt.
+      - name: mittel_preis_eur
+        description: Mittel-Nachtpreis ohne Ausreißer.
+      - name: snapshot_label
+        description: Anzeigename des Stands, deutsch ("Juni 2026").
 
   - name: mart_powerbi_report_schlank
     description: >
-      Schlanke Faktentabelle für Power BI (74.898 Zeilen, 32 Spalten): eine Zeile
+      Schlanke Faktentabelle für Power BI (74.898 Zeilen, 33 Spalten): eine Zeile
       je Listing und Snapshot, mit dem Fremdschlüssel district_snapshot_id auf
       dim_district_snapshot (n:1) und den Bezirksattributen aus dim_neighbourhood.
     columns:
@@ -151,9 +239,14 @@ models:
           - relationships:
               arguments:
                 to: ref('dim_district_snapshot')
+                field: district_snapshot_id
       - name: snapshot_date
         tests:
           - not_null
+      - name: snapshot_label
+        description: >
+          Anzeigename des Stands, deutsch ("Juni 2026"). Für Slicer auf Seiten,
+          die beide Städte zugleich zeigen sollen — siehe dim_district_snapshot.
       - name: price_eur
         description: >
           Nachtpreis in Euro je Inserat. Leer, wenn die Quelle keinen Preis

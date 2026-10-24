@@ -38,6 +38,7 @@ DB = os.path.join(PROJEKT, "data", "airbnb.duckdb")
 # Tabelle -> Spalte fuer die stabile Zeilenreihenfolge im Export
 STANDARD = {
     "dim_district_snapshot": "district_snapshot_id",
+    "dim_district_verfuegbarkeit": "district_snapshot_id",
     "mart_powerbi_report_schlank": "listing_snapshot_id",
 }
 ALLE = {

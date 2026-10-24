@@ -1,4 +1,4 @@
--- Mart: flache Export-Tabelle fuer Power BI (74.898 Zeilen, 32 Spalten).
+-- Mart: flache Export-Tabelle fuer Power BI (74.898 Zeilen, 33 Spalten).
 -- Korn: eine Zeile je Listing und Snapshot, mit Bezirksattributen und dem
 -- Fremdschluessel district_snapshot_id (n:1) auf dim_district_snapshot.
 -- Die Bezirkskennzahlen selbst liegen in dim_district_snapshot und sind hier
@@ -24,6 +24,14 @@ select
     year(b.snapshot_date)    as snapshot_year,
     quarter(b.snapshot_date) as snapshot_quarter,
     month(b.snapshot_date)   as snapshot_month,
+    -- Anzeigename des Stands, deutsch: Berlin 26.06. und Muenchen 29.06. teilen
+    -- sich den Wert "Juni 2026" - nur so zeigt ein Slicer beide Staende zugleich.
+    case month(b.snapshot_date)
+        when 1 then 'Januar'   when 2 then 'Februar' when 3 then 'März'
+        when 4 then 'April'    when 5 then 'Mai'     when 6 then 'Juni'
+        when 7 then 'Juli'     when 8 then 'August'  when 9 then 'September'
+        when 10 then 'Oktober' when 11 then 'November' else 'Dezember'
+    end || ' ' || cast(year(b.snapshot_date) as varchar) as snapshot_label,
     b.district,
     b.subdistrict,
     d.subdistrict_count,

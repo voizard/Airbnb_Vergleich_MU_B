@@ -27,6 +27,7 @@ Inside Airbnb CSVs          EL (Python/DuckDB)         T (dbt)
                                             │ marts (Tables)                   │
                                             │ dim_neighbourhood                │
                                             │ dim_district_snapshot            │
+                                            │ dim_district_verfuegbarkeit      │
                                             │ fct_listing_snapshot (inkrem.)   │
                                             │ mart_district_kpis               │
                                             │ mart_price_trend                 │
@@ -74,6 +75,7 @@ einheitliche Schema ab; Berlin 2015 nutzt `neighbourhood` unverändert.
 | `stg_airbnb__neighbourhoods` | view | eine Zeile je Stadtteil |
 | `dim_neighbourhood` | table | eine Zeile je Stadt und Bezirk |
 | `dim_district_snapshot` | table | Kennzahlen je Bezirk und Snapshot (148 Zeilen), nicht additiv |
+| `dim_district_verfuegbarkeit` | table | Verfügbarkeit und Preis je Bezirk und Snapshot (148 Zeilen), nicht additiv |
 | `fct_listing_snapshot` | **incremental** (delete+insert) | eine Zeile je Stadt, Snapshot und Listing |
 | `mart_district_kpis` | table | eine Zeile je Stadt, Bezirk und Snapshot |
 | `mart_price_trend` | table | Kennzahlen plus Veränderung zum Vorgänger-Snapshot |
@@ -110,7 +112,7 @@ zu `analysis_district` (siehe `stg_airbnb__listings`).
 
 ## Tests und Datenqualität
 
-`dbt build` läuft mit **44 bestandenen Tests und 1 Warnung** (36 generic +
+`dbt build` läuft mit **44 bestandenen Tests und 1 Warnung** (42 generic +
 3 singular Tests). Die Warnung ist gewollt und dokumentiert:
 
 - `assert_snapshot_drift` (warn) erkennt Zeilenzahl-Sprünge zwischen Snapshots:
@@ -152,15 +154,22 @@ Umgebungsvariablen: `AIRBNB_RAW_DIR` (Standard: `../airbnb/raw`),
 
 ## Power BI
 
-Zwei Tabellen bilden die Konsumentenschicht:
+Drei Tabellen bilden die Konsumentenschicht:
 
 - `mart_powerbi_report_schlank` — Faktentabelle, eine Zeile je Inserat und
-  Snapshot (74.898 Zeilen, 32 Spalten): Preise, Zimmertyp, Koordinaten,
-  Bezirksattribute und `district_snapshot_id` als Fremdschlüssel.
+  Snapshot (74.898 Zeilen, 33 Spalten): Preise, Zimmertyp, Koordinaten,
+  Bezirksattribute, `snapshot_label` („Juni 2026") und `district_snapshot_id`
+  als Fremdschlüssel.
 - `dim_district_snapshot` — Bezirkskennzahlen je Snapshot (148 Zeilen):
   Median- und Durchschnittspreis, Preis-Abdeckung, Ausreißerzahl sowie die
   Veränderung zum vorherigen Snapshot mit Preisen. Nicht additiv (Median,
   Anteile) und unabhängig von Filtern der Faktentabelle — nur lesen, nie summieren.
+- `dim_district_verfuegbarkeit` — Verfügbarkeit je Bezirk und Snapshot
+  (148 Zeilen, gleicher Primärschlüssel wie `dim_district_snapshot`): Anteile
+  der Inserate mit 0, 1–89, 90–299 und ab 300 freien Tagen, Mittel und Median
+  der freien Tage sowie Median- und Mittelpreis. Eigene Tabelle, weil Power BI
+  die Spaltenzahl beim Import festschreibt — zusätzliche Spalten in einer
+  bestehenden Datei fallen dort still heraus.
 
 `mart_powerbi_listings` bleibt als flache Variante ohne Bezirks-Fremdschlüssel
 erhalten. Verbindung über den DuckDB-ODBC-Treiber; alternativ als CSV.
@@ -173,7 +182,7 @@ Locale und deutet den Punkt als Tausendertrennzeichen — aus `26.0` wird `260`
 Zahlenfelder mit Dezimalkomma, Semikolon als Trennzeichen, UTF-8 mit BOM:
 
 ```bash
-python3 scripts/export_powerbi_de.py        # dim_district_snapshot + mart_powerbi_report_schlank
+python3 scripts/export_powerbi_de.py        # dim_district_snapshot + dim_district_verfuegbarkeit + mart_powerbi_report_schlank
 python3 scripts/export_powerbi_de.py --alle # alle Marts
 ```
 
@@ -183,6 +192,18 @@ Import in Power BI: Zahlen mit Gebietsschema **Deutsch**, die Wahr/Falsch-Spalte
 `true`/`false`.
 
 ![Startseite des Power-BI-Berichts: Preisentwicklung Berlin und München](docs/powerbi_startseite.png?v=2)
+
+**Seite 2 „Verfügbarkeit"** — nur ganze Unterkünfte, Median je Inserat, Stand
+26./29. Juni 2026: Median-Nachtpreis 155 € in Berlin gegen 178 € in München,
+dazu eine Median-Verfügbarkeit von 168 gegen 61 freien Tagen im Jahr. Das
+Streudiagramm stellt je Bezirk Median-Preis gegen Median-Verfügbarkeit,
+Blasengröße = Zahl der Inserate: Berlin liegt geschlossen im Feld hoher
+Verfügbarkeit (rund 150–260 freie Tage) bei Preisen um 100–160 €, München
+streut breit nach unten (viele Bezirke unter 130 freie Tage) und hat zugleich
+die teureren Bezirke. Verfügbarkeit ist host-gesteuert — hohe Werte heißen
+„viel angeboten", nicht „wenig gebucht".
+
+![Seite 2 des Power-BI-Berichts: Verfügbarkeit Berlin und München](docs/powerbi_verfuegbarkeit.png)
 
 ## Continuous Integration
 
