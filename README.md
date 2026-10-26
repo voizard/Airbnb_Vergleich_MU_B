@@ -216,36 +216,43 @@ die teureren Bezirke. Verfügbarkeit ist host-gesteuert — hohe Werte heißen
 
 ![Seite 2 des Power-BI-Berichts: Verfügbarkeit Berlin und München](docs/powerbi_verfuegbarkeit.png?v=2)
 
-**Seite 3 „Bezirke"** — Bezirksvergleich, Median je Bezirk, Stand Juni 2026:
-Der günstigste Bezirk ist Berlin **Neukölln mit 47 €**, der teuerste **Spandau
-mit 78 €**; in München liegt **Milbertshofen-Am Hart mit 83 €** vorn und
-**Altstadt-Lehel mit 160 €** am oberen Ende. Das Ranking steckt im Measure, weil
+**Seite 3 „Bezirke"** — Bezirksvergleich, Median je Bezirk, **Stand Juni 2026**:
+Der `snapshot_date`-Slicer ist auf den letzten Stand gesetzt, damit die Seite
+nicht über alle Jahre poolt (siehe unten, warum das entscheidend ist). Der
+günstigste Bezirk ist Berlin **Reinickendorf mit 83 €**, der teuerste **Pankow
+mit 152 €**; in München liegt **Aubing-Lochhausen-Langwied mit 110 €** vorn und
+**Altstadt-Lehel mit 276 €** am oberen Ende. Das Ranking steckt im Measure, weil
 eine Kachel nicht selbst sortieren kann (`TOPN` + `CONCATENATEX`, aufsteigend für
 den günstigsten, absteigend für den teuersten Bezirk); die Mindestbasis von 30
 Inseraten mit Preis verhindert, dass ein Bezirk mit einer Handvoll Angebote die
-Kachel gewinnt.
+Kachel gewinnt. Im Juni-2026-Stand hat kein Bezirk weniger als 30 Inserate mit
+Preis, die Kachel zeigt also die tatsächlichen Extremwerte.
 
-**Vorbehalt dieser Seite:** Sie ist die einzige ohne `snapshot_label`-Filter — es
-werden also alle Snapshots mit Preisen gemeinsam ausgewertet. Das verzerrt das
-Ergebnis, denn die alten Stände sind billiger **und** zahlenmäßig viel größer:
-Neukölln kommt aus 2015 mit 2.336 Zeilen (Median 42 €) und aus 2026-06 mit nur
-677 Zeilen (Median 117 €) — der alte Stand stellt 77,5 % aller Zeilen. Der
-günstigste Bezirk ist damit nicht der billigste, sondern der mit dem größten
-Altbestand. Die Gegenprobe: Auf Juni 2026 eingeschränkt ist Berlin-Neukölln mit
-117 € **nicht** mehr günstigster Bezirk, sondern liegt im Mittelfeld; günstigster
-ist Reinickendorf (83 €, ganze Unterkünfte 101 €). Dasselbe Muster in München:
-Milbertshofen-Am Hart bezieht 64,7 % seiner Zeilen aus dem Corona-Snapshot 2020
-(Median 69 €) und steht deshalb oben, im Juni 2026 liegt es bei 116 €.
+Das Diagramm stellt die zehn teuersten Bezirke beider Städte gegenüber, Berlin
+dunkel und München hell: Altstadt-Lehel 276 €, Schwanthalerhöhe 225 €, Maxvorstadt
+201 €, Ludwigsvorstadt-Isarvorstadt 183,50 €, Au-Haidhausen 166 €, Sendling
+159 €, dann Berlin mit Pankow 152 € und Mitte 151 €, schließlich Bogenhausen und
+Schwabing-West mit je 147,50 €. Pankow gegen Mitte trennt nur 1 € — die Spitze
+ist in Berlin praktisch gleichauf, während München nach oben klar ausreißt.
 
-Ein Bezirks-Ranking ohne `snapshot_label`-Slicer misst also den Snapshot-Mix,
-nicht das Preisniveau. Für eine belastbare Aussage gehören `city`- **und**
-`snapshot_label`-Slicer neben die Kachel; dann lautet sie Reinickendorf 101 €
-gegen Mitte 170 € (Berlin) bzw. Aubing-Lochhausen-Langwied 110 € gegen
-Altstadt-Lehel 336,50 € (München), jeweils ganze Unterkünfte. Ein Vorbehalt der
-Seite selbst: Die Auswahl steht auf *keinem* Zimmertyp, also werden alle vier
-Typen gemischt.
+**Warum der Snapshot-Filter diese Seite ausmacht:** Ohne ihn werden alle Stände
+mit Preisen gemeinsam ausgewertet, und das kippt das Ergebnis. Die alten Stände
+sind billiger **und** zahlenmäßig viel größer — im gepoolten Median ist Neukölln
+der günstigste Berliner Bezirk mit 47 € (statt 117 € im Juni) und Spandau mit
+78 € der teuerste (statt 116 €); in München steht Milbertshofen-Am Hart mit 83 €
+vorn (statt 116 €) und Altstadt-Lehel mit 160 € (statt 276 €). Am deutlichsten
+kippt Pankow: gepoolt liegt es mit 65 € auf Rang 8 von 12, im Juni-Stand mit
+152 € auf Rang 1 — von 3.719 Pankow-Zeilen mit Preis stammen 2.475 (66,6 %) aus
+dem 2015er Snapshot. Ein Bezirks-Ranking ohne Snapshot-Filter misst also den
+Snapshot-Mix, nicht das Preisniveau.
 
-![Seite 3 des Power-BI-Berichts: Bezirksvergleich Berlin und München](docs/powerbi_bezirke.png)
+Ein Vorbehalt bleibt: Die Auswahl steht auf *keinem* Zimmertyp, es werden also
+alle vier Typen gemischt. Auf ganze Unterkünfte begrenzt verschiebt sich das
+Bild leicht — Reinickendorf bleibt mit 101 € der günstigste Berliner Bezirk,
+teuerster wird aber Mitte mit 170 € statt Pankow; in München bleibt es bei
+Aubing-Lochhausen-Langwied 110 € gegen Altstadt-Lehel 336,50 €.
+
+![Seite 3 des Power-BI-Berichts: Bezirksvergleich Berlin und München](docs/powerbi_bezirke.png?v=2)
 
 ## Continuous Integration
 
