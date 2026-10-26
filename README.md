@@ -80,7 +80,7 @@ einheitliche Schema ab; Berlin 2015 nutzt `neighbourhood` unverändert.
 | `mart_district_kpis` | table | eine Zeile je Stadt, Bezirk und Snapshot |
 | `mart_price_trend` | table | Kennzahlen plus Veränderung zum Vorgänger-Snapshot |
 | `mart_powerbi_listings` | table | flache Export-Tabelle (74.898 Zeilen) |
-| `mart_powerbi_report_schlank` | table | schlanke Faktentabelle für Power BI (74.898 Zeilen, 32 Spalten) |
+| `mart_powerbi_report_schlank` | table | schlanke Faktentabelle für Power BI (74.898 Zeilen, 33 Spalten) |
 | `snapshots.listings_history` | dbt snapshot (SCD2) | eine Zeile je Listing-Version |
 
 Analyseebene: Berlin hat 12 Bezirke in `neighbourhood_group` (die feinere
@@ -191,7 +191,18 @@ Import in Power BI: Zahlen mit Gebietsschema **Deutsch**, die Wahr/Falsch-Spalte
 (`has_price`, `is_price_outlier`, …) mit **Englisch (USA)** — im CSV stehen
 `true`/`false`.
 
-![Startseite des Power-BI-Berichts: Preisentwicklung Berlin und München](docs/powerbi_startseite.png?v=2)
+**Seite 1 „Preisentwicklung"** — nur ganze Unterkünfte, Median je Inserat,
+Ausreißer über 1.000 €/Nacht ausgeschlossen, Stand Juni 2026: 6,11 Tsd. Inserate
+in Berlin bei 69 % Preis-Abdeckung, 2,77 Tsd. in München bei 60 %. Die beiden
+Kacheln rechts zeigen den Median-Nachtpreis mit Startwert und Veränderung
+(178 € ab 95 €, +87,37 % für München; 155 € ab 65 €, +138,46 % für Berlin).
+Das Säulendiagramm stellt denselben Median je Snapshot gegenüber: Berlin
+2015-Q3 65 € und 2026-Q2 155 €, München 2020-Q2 95 €, 2026-Q1 182 € und
+2026-Q2 178 €. Die Achse ist kategorial und chronologisch sortiert, damit die
+beiden Städte mit ihren unterschiedlichen Snapshot-Daten nebeneinander lesbar
+bleiben.
+
+![Startseite des Power-BI-Berichts: Preisentwicklung Berlin und München](docs/powerbi_startseite.png?v=3)
 
 **Seite 2 „Verfügbarkeit"** — nur ganze Unterkünfte, Median je Inserat, Stand
 26./29. Juni 2026: Median-Nachtpreis 155 € in Berlin gegen 178 € in München,
@@ -203,7 +214,38 @@ streut breit nach unten (viele Bezirke unter 130 freie Tage) und hat zugleich
 die teureren Bezirke. Verfügbarkeit ist host-gesteuert — hohe Werte heißen
 „viel angeboten", nicht „wenig gebucht".
 
-![Seite 2 des Power-BI-Berichts: Verfügbarkeit Berlin und München](docs/powerbi_verfuegbarkeit.png)
+![Seite 2 des Power-BI-Berichts: Verfügbarkeit Berlin und München](docs/powerbi_verfuegbarkeit.png?v=2)
+
+**Seite 3 „Bezirke"** — Bezirksvergleich, Median je Bezirk, Stand Juni 2026:
+Der günstigste Bezirk ist Berlin **Neukölln mit 47 €**, der teuerste **Spandau
+mit 78 €**; in München liegt **Milbertshofen-Am Hart mit 83 €** vorn und
+**Altstadt-Lehel mit 160 €** am oberen Ende. Das Ranking steckt im Measure, weil
+eine Kachel nicht selbst sortieren kann (`TOPN` + `CONCATENATEX`, aufsteigend für
+den günstigsten, absteigend für den teuersten Bezirk); die Mindestbasis von 30
+Inseraten mit Preis verhindert, dass ein Bezirk mit einer Handvoll Angebote die
+Kachel gewinnt.
+
+**Vorbehalt dieser Seite:** Sie ist die einzige ohne `snapshot_label`-Filter — es
+werden also alle Snapshots mit Preisen gemeinsam ausgewertet. Das verzerrt das
+Ergebnis, denn die alten Stände sind billiger **und** zahlenmäßig viel größer:
+Neukölln kommt aus 2015 mit 2.336 Zeilen (Median 42 €) und aus 2026-06 mit nur
+677 Zeilen (Median 117 €) — der alte Stand stellt 77,5 % aller Zeilen. Der
+günstigste Bezirk ist damit nicht der billigste, sondern der mit dem größten
+Altbestand. Die Gegenprobe: Auf Juni 2026 eingeschränkt ist Berlin-Neukölln mit
+117 € **nicht** mehr günstigster Bezirk, sondern liegt im Mittelfeld; günstigster
+ist Reinickendorf (83 €, ganze Unterkünfte 101 €). Dasselbe Muster in München:
+Milbertshofen-Am Hart bezieht 64,7 % seiner Zeilen aus dem Corona-Snapshot 2020
+(Median 69 €) und steht deshalb oben, im Juni 2026 liegt es bei 116 €.
+
+Ein Bezirks-Ranking ohne `snapshot_label`-Slicer misst also den Snapshot-Mix,
+nicht das Preisniveau. Für eine belastbare Aussage gehören `city`- **und**
+`snapshot_label`-Slicer neben die Kachel; dann lautet sie Reinickendorf 101 €
+gegen Mitte 170 € (Berlin) bzw. Aubing-Lochhausen-Langwied 110 € gegen
+Altstadt-Lehel 336,50 € (München), jeweils ganze Unterkünfte. Ein Vorbehalt der
+Seite selbst: Die Auswahl steht auf *keinem* Zimmertyp, also werden alle vier
+Typen gemischt.
+
+![Seite 3 des Power-BI-Berichts: Bezirksvergleich Berlin und München](docs/powerbi_bezirke.png)
 
 ## Continuous Integration
 
