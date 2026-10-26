@@ -216,43 +216,52 @@ die teureren Bezirke. Verfügbarkeit ist host-gesteuert — hohe Werte heißen
 
 ![Seite 2 des Power-BI-Berichts: Verfügbarkeit Berlin und München](docs/powerbi_verfuegbarkeit.png?v=2)
 
-**Seite 3 „Bezirke"** — Bezirksvergleich, Median je Bezirk, **Stand Juni 2026**:
-Der `snapshot_date`-Slicer ist auf den letzten Stand gesetzt, damit die Seite
-nicht über alle Jahre poolt (siehe unten, warum das entscheidend ist). Der
-günstigste Bezirk ist Berlin **Reinickendorf mit 83 €**, der teuerste **Pankow
-mit 152 €**; in München liegt **Aubing-Lochhausen-Langwied mit 110 €** vorn und
-**Altstadt-Lehel mit 276 €** am oberen Ende. Das Ranking steckt im Measure, weil
-eine Kachel nicht selbst sortieren kann (`TOPN` + `CONCATENATEX`, aufsteigend für
-den günstigsten, absteigend für den teuersten Bezirk); die Mindestbasis von 30
-Inseraten mit Preis verhindert, dass ein Bezirk mit einer Handvoll Angebote die
-Kachel gewinnt. Im Juni-2026-Stand hat kein Bezirk weniger als 30 Inserate mit
-Preis, die Kachel zeigt also die tatsächlichen Extremwerte.
+**Seite 3 „Lagen"** — Lagevergleich, Median je Lage, **Stand Juni 2026**:
+Die Seite hieß früher „Bezirke" und heißt jetzt „Lagen", weil die Einheiten
+nicht äquivalent sind: Berlin hat 12 Bezirke (ø 74 km²), München 25 Stadtbezirke
+(ø 12 km²). „Bezirke" verspricht eine Vergleichbarkeit, die es so nicht gibt;
+„Lage" sagt nur *wo*, ohne Gleichheit zu behaupten. Der `snapshot_date`-Slicer
+ist auf den letzten Stand gesetzt, damit die Seite nicht über alle Jahre poolt
+(siehe unten, warum das entscheidend ist), die Zimmerart steht auf **Ganze
+Unterkunft**.
 
-Das Diagramm stellt die zehn teuersten Bezirke beider Städte gegenüber, Berlin
-dunkel und München hell: Altstadt-Lehel 276 €, Schwanthalerhöhe 225 €, Maxvorstadt
-201 €, Ludwigsvorstadt-Isarvorstadt 183,50 €, Au-Haidhausen 166 €, Sendling
-159 €, dann Berlin mit Pankow 152 € und Mitte 151 €, schließlich Bogenhausen und
-Schwabing-West mit je 147,50 €. Pankow gegen Mitte trennt nur 1 € — die Spitze
-ist in Berlin praktisch gleichauf, während München nach oben klar ausreißt.
+Die vier Kacheln nennen die Extremwerte: günstigste Lage Berlin **Reinickendorf
+mit 101 €**, teuerste **Mitte mit 170 €**; in München liegt
+**Aubing-Lochhausen-Langwied mit 110 €** vorn und **Altstadt-Lehel mit 336,50 €**
+am oberen Ende. Das Ranking steckt im Measure, weil eine Kachel nicht selbst
+sortieren kann (`TOPN` + `CONCATENATEX`, aufsteigend für die günstigste,
+absteigend für die teuerste Lage); die Mindestbasis von 30 Inseraten mit Preis
+verhindert, dass eine Lage mit einer Handvoll Angebote die Kachel gewinnt.
+
+Die vier Diagramme zeigen je Stadt die fünf teuersten und die fünf günstigsten
+Lagen, aufsteigend sortiert, mit gemeinsamer Achse (0–350 €). München reicht von
+Aubing-Lochhausen-Langwied 110 € über Moosach 127,50 €, Pasing-Obermenzing 131 €
+und Feldmoching-Hasenbergl 135,50 € bis zu Altstadt-Lehel 336,50 €,
+Schwanthalerhöhe 243 €, Maxvorstadt 229 €, Ludwigsvorstadt-Isarvorstadt 210,50 €
+und Sendling 196 €. Berlin reicht von Reinickendorf 101 € über Marzahn-Hellersdorf
+122 €, Treptow-Köpenick 124 €, Steglitz-Zehlendorf 125 € und
+Charlottenburg-Wilm. 131 € bis zu Mitte 170 €, Pankow 169 €,
+Friedrichshain-Kreuzberg 166 €, Spandau 153,50 € und Lichtenberg 149,50 €.
 
 **Warum der Snapshot-Filter diese Seite ausmacht:** Ohne ihn werden alle Stände
 mit Preisen gemeinsam ausgewertet, und das kippt das Ergebnis. Die alten Stände
 sind billiger **und** zahlenmäßig viel größer — im gepoolten Median ist Neukölln
-der günstigste Berliner Bezirk mit 47 € (statt 117 € im Juni) und Spandau mit
-78 € der teuerste (statt 116 €); in München steht Milbertshofen-Am Hart mit 83 €
-vorn (statt 116 €) und Altstadt-Lehel mit 160 € (statt 276 €). Am deutlichsten
-kippt Pankow: gepoolt liegt es mit 65 € auf Rang 8 von 12, im Juni-Stand mit
-152 € auf Rang 1 — von 3.719 Pankow-Zeilen mit Preis stammen 2.475 (66,6 %) aus
-dem 2015er Snapshot. Ein Bezirks-Ranking ohne Snapshot-Filter misst also den
-Snapshot-Mix, nicht das Preisniveau.
+die günstigste Berliner Lage mit 59,50 € (statt 142,50 € im Juni) und Spandau mit
+100 € die teuerste (statt 153,50 €); in München steht Moosach mit 100 € vorn
+(statt 127,50 €) und Altstadt-Lehel mit 191 € (statt 336,50 €). Am deutlichsten
+kippt Pankow: gepoolt liegt es mit 80 € auf Rang 8 von 12, im Juni-Stand mit
+169 € auf Rang 2 — von 2.571 Pankow-Zeilen mit Preis (ganze Unterkünfte) stammen
+1.562 (60,8 %) aus dem 2015er Snapshot. Ein Lage-Ranking ohne Snapshot-Filter
+misst also den Snapshot-Mix, nicht das Preisniveau.
 
-Ein Vorbehalt bleibt: Die Auswahl steht auf *keinem* Zimmertyp, es werden also
-alle vier Typen gemischt. Auf ganze Unterkünfte begrenzt verschiebt sich das
-Bild leicht — Reinickendorf bleibt mit 101 € der günstigste Berliner Bezirk,
-teuerster wird aber Mitte mit 170 € statt Pankow; in München bleibt es bei
-Aubing-Lochhausen-Langwied 110 € gegen Altstadt-Lehel 336,50 €.
+Zwei Vorbehalte bleiben. Erstens stehen im unteren München-Panel **sechs** Balken
+statt fünf: bei 136 € liegen Milbertshofen-Am Hart und Ramersdorf-Perlach
+gleichauf, und an einer Top-N-Grenze nimmt Power BI beide mit. Zweitens ist der
+Unterschied der Spannweiten (69 € in Berlin gegen 226,50 € in München) teils
+Artefakt der Einteilung — größere Einheiten mitteln stärker, Berlins 12 Bezirke
+sind im Schnitt sechsmal so groß wie Münchens 25 Stadtbezirke.
 
-![Seite 3 des Power-BI-Berichts: Bezirksvergleich Berlin und München](docs/powerbi_bezirke.png?v=2)
+![Seite 3 des Power-BI-Berichts: Lagevergleich Berlin und München](docs/powerbi_lagen.png?v=1)
 
 ## Continuous Integration
 
