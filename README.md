@@ -45,8 +45,8 @@ Inside Airbnb CSVs          EL (Python/DuckDB)         T (dbt)
 
 | Stadt | Snapshots | Listings gesamt |
 |---|---|---|
-| Berlin | 2015-09-01 (historisch), 2025-12-27, 2026-03-28, 2026-06-26 | 48.554 |
-| München | 2020-05-24 (historisch), 2025-12-29, 2026-03-30, 2026-06-29 | 26.344 |
+| Berlin | 2015-09-01 (historisch), 2025-12-27, 2026-03-28, 2026-06-26, 2026-09-19 | 60.930 |
+| München | 2020-05-24 (historisch), 2025-12-29, 2026-03-30, 2026-06-29, 2026-09-23 | 33.837 |
 
 Rohdaten liegen **nicht** im Repo (Größe, Lizenz). Sie werden per
 `scripts/download_data.sh` bzw. manuell bezogen und über
@@ -74,13 +74,13 @@ einheitliche Schema ab; Berlin 2015 nutzt `neighbourhood` unverändert.
 | `stg_airbnb__listings` | view | eine Zeile je Listing und Snapshot |
 | `stg_airbnb__neighbourhoods` | view | eine Zeile je Stadtteil |
 | `dim_neighbourhood` | table | eine Zeile je Stadt und Bezirk |
-| `dim_district_snapshot` | table | Kennzahlen je Bezirk und Snapshot (148 Zeilen), nicht additiv |
-| `dim_district_verfuegbarkeit` | table | Verfügbarkeit und Preis je Bezirk und Snapshot (148 Zeilen), nicht additiv |
+| `dim_district_snapshot` | table | Kennzahlen je Bezirk und Snapshot (185 Zeilen), nicht additiv |
+| `dim_district_verfuegbarkeit` | table | Verfügbarkeit und Preis je Bezirk und Snapshot (185 Zeilen), nicht additiv |
 | `fct_listing_snapshot` | **incremental** (delete+insert) | eine Zeile je Stadt, Snapshot und Listing |
 | `mart_district_kpis` | table | eine Zeile je Stadt, Bezirk und Snapshot |
 | `mart_price_trend` | table | Kennzahlen plus Veränderung zum Vorgänger-Snapshot |
-| `mart_powerbi_listings` | table | flache Export-Tabelle (74.898 Zeilen) |
-| `mart_powerbi_report_schlank` | table | schlanke Faktentabelle für Power BI (74.898 Zeilen, 33 Spalten) |
+| `mart_powerbi_listings` | table | flache Export-Tabelle (94.767 Zeilen) |
+| `mart_powerbi_report_schlank` | table | schlanke Faktentabelle für Power BI (94.767 Zeilen, 33 Spalten) |
 | `snapshots.listings_history` | dbt snapshot (SCD2) | eine Zeile je Listing-Version |
 
 Analyseebene: Berlin hat 12 Bezirke in `neighbourhood_group` (die feinere
@@ -94,30 +94,30 @@ zu `analysis_district` (siehe `stg_airbnb__listings`).
 
 | Berlin | € | München | € |
 |---|---|---|---|
-| Pankow | 152 | Altstadt-Lehel | 276 |
-| Mitte | 151 | Schwanthalerhöhe | 225 |
-| Friedrichshain-Kreuzberg | 139 | Maxvorstadt | 201 |
-| Lichtenberg | 122 | Ludwigsvorstadt-Isarvorstadt | 183,50 |
-| Charlottenburg-Wilm. | 118 | Au-Haidhausen | 166 |
+| Mitte | 146,50 | Altstadt-Lehel | 338 |
+| Pankow | 146 | Ludwigsvorstadt-Isarvorstadt | 290 |
+| Friedrichshain-Kreuzberg | 132 | Maxvorstadt | 257 |
+| Lichtenberg | 124 | Schwanthalerhöhe | 254 |
+| Charlottenburg-Wilm. | 121 | Sendling | 217 |
 
-- Berlin 2026-06: 12.855 Listings, 66,2 % mit auswertbarem Preis
-- München 2026-06: 6.890 Listings, 64,8 % mit auswertbarem Preis
-- Preisausreißer über 1.000 €/Nacht: Berlin 27, München 156 — werden aus den
-  Medians ausgeschlossen, aber gezählt
+- Berlin 2026-09: 12.376 Listings, 65,9 % mit auswertbarem Preis
+- München 2026-09: 7.493 Listings, 67,8 % mit auswertbarem Preis
+- Preisausreißer über 1.000 €/Nacht: Berlin 54, München 264 (alle Snapshots) —
+  werden aus den Medians ausgeschlossen, aber gezählt
 - Berlin 2015-09: Median der Bezirksmediane 50 € (historischer Vergleichswert)
-- Berlin 2015-09 → 2026-06, ganze Unterkünfte: 65 € → 155 € (+138 % nominal)
+- Berlin 2015-09 → 2026-09, ganze Unterkünfte: 65 € → 155 € (+138 % nominal)
 - München 2020-05: Median der Bezirksmediane 75 €; ganze Wohnungen 95 € →
-  2026-06: 178 € (+87 % nominal) — Mai 2020 fiel in den Corona-Lockdown,
+  2026-09: 250 € (+163 % nominal) — Mai 2020 fiel in den Corona-Lockdown,
   daher als Obergrenze zu lesen
 
 ## Tests und Datenqualität
 
-`dbt build` läuft mit **44 bestandenen Tests und 1 Warnung** (42 generic +
+`dbt build` läuft mit **47 bestandenen Tests und 1 Warnung** (45 generic +
 3 singular Tests). Die Warnung ist gewollt und dokumentiert:
 
 - `assert_snapshot_drift` (warn) erkennt Zeilenzahl-Sprünge zwischen Snapshots:
   Berlin 2026-03 **−59,5 %**, Berlin 2026-06 **+119,5 %**, München 2025-12
-  **−57,2 %** (nach dem 2020er-Snapshot), München 2026-06 **+93,1 %**
+  **−57,3 %** (nach dem 2020er-Snapshot), München 2026-06 **+93,1 %**
 - `assert_preis_plausibel` prüft negative Preise und Mediane ohne Datenbasis
 - `assert_eindeutiges_listing_je_snapshot` ersetzt einen dbt_utils-Test
   (das Projekt läuft bewusst ohne externe Pakete)
@@ -157,15 +157,15 @@ Umgebungsvariablen: `AIRBNB_RAW_DIR` (Standard: `../airbnb/raw`),
 Drei Tabellen bilden die Konsumentenschicht:
 
 - `mart_powerbi_report_schlank` — Faktentabelle, eine Zeile je Inserat und
-  Snapshot (74.898 Zeilen, 33 Spalten): Preise, Zimmertyp, Koordinaten,
+  Snapshot (94.767 Zeilen, 33 Spalten): Preise, Zimmertyp, Koordinaten,
   Bezirksattribute, `snapshot_label` („Juni 2026") und `district_snapshot_id`
   als Fremdschlüssel.
-- `dim_district_snapshot` — Bezirkskennzahlen je Snapshot (148 Zeilen):
+- `dim_district_snapshot` — Bezirkskennzahlen je Snapshot (185 Zeilen):
   Median- und Durchschnittspreis, Preis-Abdeckung, Ausreißerzahl sowie die
   Veränderung zum vorherigen Snapshot mit Preisen. Nicht additiv (Median,
   Anteile) und unabhängig von Filtern der Faktentabelle — nur lesen, nie summieren.
 - `dim_district_verfuegbarkeit` — Verfügbarkeit je Bezirk und Snapshot
-  (148 Zeilen, gleicher Primärschlüssel wie `dim_district_snapshot`): Anteile
+  (185 Zeilen, gleicher Primärschlüssel wie `dim_district_snapshot`): Anteile
   der Inserate mit 0, 1–89, 90–299 und ab 300 freien Tagen, Mittel und Median
   der freien Tage sowie Median- und Mittelpreis. Eigene Tabelle, weil Power BI
   die Spaltenzahl beim Import festschreibt — zusätzliche Spalten in einer

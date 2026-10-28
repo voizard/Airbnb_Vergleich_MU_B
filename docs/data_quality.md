@@ -11,10 +11,12 @@ sinnvoll, durch Tests abgesichert.
 | Berlin 2025-12-27 | 14.470 | 0 % |
 | Berlin 2026-03-28 | 5.856 | 0 % |
 | Berlin 2026-06-26 | 12.855 | 66,2 % |
+| Berlin 2026-09-19 | 12.376 | 65,9 % |
 | München 2020-05-24 | 11.128 | 100 % |
 | München 2025-12-29 | 4.757 | 0 % |
 | München 2026-03-30 | 3.569 | 3,0 % |
 | München 2026-06-29 | 6.890 | 64,8 % |
+| München 2026-09-23 | 7.493 | 67,8 % |
 
 **Konsequenz:** Preiskennzahlen sind je Snapshot nur so gut wie die Abdeckung.
 `mart_district_kpis` weist `price_coverage_share` aus, damit Mediane nicht
@@ -28,8 +30,11 @@ Test: `assert_preis_plausibel` (Median NULL bei vorhandenen Preisen = Fehler).
 |---|---|---|---|---|
 | Berlin | 2026-03-28 | 5.856 | 14.470 | −59,5 % |
 | Berlin | 2026-06-26 | 12.855 | 5.856 | +119,5 % |
-| München | 2025-12-29 | 4.757 | 11.128 | −57,2 % |
+| München | 2025-12-29 | 4.757 | 11.128 | −57,3 % |
 | München | 2026-06-29 | 6.890 | 3.569 | +93,1 % |
+
+Die September-Stände liegen mit −3,7 % (Berlin) und +8,8 % (München) unter der
+30-%-Schwelle und lösen die Warnung daher nicht aus.
 
 **Interpretation:** Scraping-Lücken bzw. ein abweichender Erhebungsumfang in der
 Quelle, kein echter Marktrückgang. Wer die Zeitreihe ungeprüft liest, deutet
@@ -57,9 +62,9 @@ Fehler ist beim ersten Build aufgetreten und wurde behoben.
 
 ## 4. Preisausreißer
 
-Höchster Wert im gesamten Datensatz: 78.531 €/Nacht. Werte über
+Höchster Wert im gesamten Datensatz: 79.600 €/Nacht. Werte über
 `var('max_plausibler_preis_eur')` = 1.000 € gelten als Ausreißer:
-Berlin 27 Zeilen, München 156 Zeilen.
+Berlin 54 Zeilen, München 264 Zeilen (alle zehn Snapshots).
 
 **Konsequenz:** Ausreißer werden nicht gelöscht, sondern über
 `is_price_outlier` markiert und aus Median/Mittelwert ausgeschlossen;
@@ -82,12 +87,12 @@ deshalb bewusst nicht als `not_null` definiert — München wäre sonst dauerhaf
 
 ## 7. Keine Duplikate auf Listungsebene
 
-Je Stadt und Snapshot ist `listing_id` eindeutig (geprüft über alle acht
+Je Stadt und Snapshot ist `listing_id` eindeutig (geprüft über alle zehn
 Snapshots). Test: `assert_eindeutiges_listing_je_snapshot`.
 
 ## 8. Was der SCD2-Snapshot zeigt
 
-`snapshots.listings_history` enthält 117.327 Zeilen für 48.025 Listings, also
-durchschnittlich 2,4 Versionen je Listing. Listings mit Preisänderung lassen
+`snapshots.listings_history` enthält 168.605 Zeilen für 49.741 Listings, also
+durchschnittlich 3,4 Versionen je Listing. Listings mit Preisänderung lassen
 sich über `dbt_valid_from` / `dbt_valid_to` nachvollziehen — Grundlage für
 Fragen wie "Wie oft ändern Hosts ihre Preise?".

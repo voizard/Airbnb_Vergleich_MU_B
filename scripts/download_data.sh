@@ -15,9 +15,11 @@ SNAPSHOTS=(
   "berlin|be|2025-12-27"
   "berlin|be|2026-03-28"
   "berlin|be|2026-06-26"
+  "berlin|be|2026-09-19"
   "munich|bv|2025-12-29"
   "munich|bv|2026-03-30"
   "munich|bv|2026-06-29"
+  "munich|bv|2026-09-23"
 )
 
 mkdir -p "$ZIEL/vis" "$ZIEL/berlin" "$ZIEL/munich"
