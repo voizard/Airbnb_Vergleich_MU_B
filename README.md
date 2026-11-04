@@ -247,7 +247,7 @@ Das Säulendiagramm stellt denselben Median je Snapshot gegenüber: Berlin
 beiden Städte mit ihren unterschiedlichen Snapshot-Daten nebeneinander lesbar
 bleiben.
 
-![Startseite des Power-BI-Berichts: Preisentwicklung Berlin und München](docs/powerbi_startseite.png?v=3)
+![Startseite des Power-BI-Berichts: Preisentwicklung Berlin und München](docs/powerbi_startseite.png?v=4)
 
 **Seite 2 „Verfügbarkeit"** — nur ganze Unterkünfte, Median je Inserat, Stand
 26./29. Juni 2026: Median-Nachtpreis 155 € in Berlin gegen 178 € in München,
