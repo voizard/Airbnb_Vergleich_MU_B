@@ -259,16 +259,16 @@ streut breit nach unten (viele Bezirke unter 130 freie Tage) und hat zugleich
 die teureren Bezirke. Verfügbarkeit ist host-gesteuert — hohe Werte heißen
 „viel angeboten", nicht „wenig gebucht".
 
-![Seite 2 des Power-BI-Berichts: Verfügbarkeit Berlin und München](docs/powerbi_verfuegbarkeit.png?v=2)
+![Seite 2 des Power-BI-Berichts: Verfügbarkeit Berlin und München](docs/powerbi_verfuegbarkeit.png?v=3)
 
 **Seite 3 „Lagen"** — Lagevergleich, Median je Lage, **Stand Juni 2026**:
 Die Seite hieß früher „Bezirke" und heißt jetzt „Lagen", weil die Einheiten
 nicht äquivalent sind: Berlin hat 12 Bezirke (ø 74 km²), München 25 Stadtbezirke
 (ø 12 km²). „Bezirke" verspricht eine Vergleichbarkeit, die es so nicht gibt;
-„Lage" sagt nur *wo*, ohne Gleichheit zu behaupten. Der `snapshot_date`-Slicer
-ist auf den letzten Stand gesetzt, damit die Seite nicht über alle Jahre poolt
-(siehe unten, warum das entscheidend ist), die Zimmerart steht auf **Ganze
-Unterkunft**.
+„Lage" sagt nur *wo*, ohne Gleichheit zu behaupten. Die Seite ist fest auf
+**Juni 2026** gestellt, damit sie nicht über alle Jahre poolt (siehe unten, warum
+das entscheidend ist); einen sichtbaren Datenslicer gibt es auf dieser Seite
+nicht. Die Zimmerart steht auf **Ganze Unterkunft**.
 
 Die vier Kacheln nennen die Extremwerte: günstigste Lage Berlin **Reinickendorf
 mit 101 €**, teuerste **Mitte mit 170 €**; in München liegt
@@ -306,7 +306,7 @@ Unterschied der Spannweiten (69 € in Berlin gegen 226,50 € in München) teil
 Artefakt der Einteilung — größere Einheiten mitteln stärker, Berlins 12 Bezirke
 sind im Schnitt sechsmal so groß wie Münchens 25 Stadtbezirke.
 
-![Seite 3 des Power-BI-Berichts: Lagevergleich Berlin und München](docs/powerbi_lagen.png?v=1)
+![Seite 3 des Power-BI-Berichts: Lagevergleich Berlin und München](docs/powerbi_lagen.png?v=2)
 
 ## Continuous Integration
 
