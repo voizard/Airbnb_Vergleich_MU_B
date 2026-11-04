@@ -191,6 +191,51 @@ Import in Power BI: Zahlen mit Gebietsschema **Deutsch**, die Wahr/Falsch-Spalte
 (`has_price`, `is_price_outlier`, …) mit **Englisch (USA)** — im CSV stehen
 `true`/`false`.
 
+#### Fallen beim Power-Query-Import
+
+Drei Stolpersteine, die den Bericht beim Aktualisieren zerlegen. Alle drei
+äußern sich als Spaltenfehler, obwohl die CSV in Ordnung ist.
+
+**1. `Columns=<n>` schneidet Spalten still ab.**
+
+Steht in der Abfrage `Csv.Document(…, [Delimiter=";", Columns=23, …])`, liest
+Power Query genau 23 Spalten — die restlichen fallen weg, ohne Warnung. Wächst
+die Datei später (hier: 23 → 28 Spalten in `dim_district_snapshot`), fehlen die
+neuen Spalten still. Symptom:
+
+> Expression.Error: Die Spalte "district_commercial_listings_share" der Tabelle
+> wurde nicht gefunden.
+
+Lösung: das Argument `Columns=` ersatzlos streichen — dann erkennt Power Query
+die Spaltenzahl selbst:
+
+```m
+Csv.Document(File.Contents("…\dim_district_snapshot.csv"),
+    [Delimiter=";", Encoding=65001, QuoteStyle=QuoteStyle.Csv])
+```
+
+**2. ISO-Datum bleibt Text.**
+
+Der Export schreibt Datum als ISO (`2015-09-01`). Power BI mit deutschem
+Gebietsschema erwartet `01.09.2015` und legt die Spalte als **Text** an. Jeder
+Vergleich mit `DATE(…)` scheitert dann:
+
+> DAX-Vergleichsvorgänge unterstützen keine Vergleiche zwischen Werten des Typs
+> Text und Date.
+
+Lösung: in Power Query den Typ setzen — Spaltenkopf → Rechtsklick → *Typ ändern*
+→ **Datum**. Das Gebietsschema ist dabei egal, weil `2015-09-01` eindeutig ist.
+Betroffen sind `snapshot_date` und `last_review_date`. **In beiden Tabellen**
+setzen (`mart_powerbi_report_schlank` **und** `dim_snapshot`) — sonst lässt sich
+die Beziehung nicht mehr herstellen (Text ↔ Datum).
+
+**3. Leere Wahr/Falsch-Zellen werden zu Text.**
+
+Enthält eine Boolean-Spalte leere Zellen, liest Power BI sie als Text — dann
+scheitert `= TRUE ()` mit derselben Meldung wie in Punkt 2.
+`scripts/export_powerbi_de.py` füllt leere Boolean-Werte deshalb beim Export mit
+`false` auf (`coalesce(spalte, false)`).
+
 **Seite 1 „Preisentwicklung"** — nur ganze Unterkünfte, Median je Inserat,
 Ausreißer über 1.000 €/Nacht ausgeschlossen, Stand Juni 2026: 6,11 Tsd. Inserate
 in Berlin bei 69 % Preis-Abdeckung, 2,77 Tsd. in München bei 60 %. Die beiden
